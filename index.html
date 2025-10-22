@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Refurbished Phones Shop (Free)</title>
+  <meta name="description" content="Simple single-file static website to sell refurbished phones.">
+  <style>
+    :root{--accent:#0b84ff;--muted:#6b7280}
+    *{box-sizing:border-box}
+    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0;background:#f7fafc;color:#0f172a}
+    header{background:white;box-shadow:0 2px 6px rgba(2,6,23,.06);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#00c2ff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+    .container{max-width:1100px;margin:28px auto;padding:0 18px}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    input[type=search],select{padding:10px 12px;border-radius:8px;border:1px solid #e6eef6;min-width:180px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+    .card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(11,20,35,.06);display:flex;flex-direction:column}
+    .card img{width:100%;height:180px;object-fit:cover}
+    .card-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+    .price{font-weight:700;color:var(--accent)}
+    .tag{font-size:12px;padding:6px 8px;background:#eef6ff;border-radius:999px;color:var(--accent);display:inline-block}
+    .btn{background:var(--accent);color:white;padding:10px 12px;border-radius:8px;border:0;cursor:pointer}
+    footer{margin:40px 0 80px;color:var(--muted);text-align:center}
+    /* modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(2,6,23,.5);display:none;align-items:center;justify-content:center;padding:18px}
+    .modal{background:white;border-radius:12px;max-width:760px;width:100%;box-shadow:0 18px 40px rgba(2,6,23,.4);overflow:hidden}
+    .modal .row{display:flex;gap:12px}
+    .modal img{width:50%;height:320px;object-fit:cover}
+    .modal .content{padding:18px}
+    .small{font-size:13px;color:var(--muted)}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#f3f4f6;font-weight:600}
+    /* hero */
+    .hero{background:linear-gradient(90deg,#e6f2ff00,#fff);padding:18px;border-radius:12px;margin-bottom:18px}
+    .topline{font-size:13px;color:var(--muted)}
+    .actions{display:flex;gap:8px}
+    /* cart */
+    .cart{position:relative}
+    .cart-count{position:absolute;top:-6px;right:-6px;background:#ff3b30;color:white;padding:6px 8px;border-radius:999px;font-size:12px}
+    /* small helpers */
+    .muted{color:var(--muted)}
+    .grid-empty{padding:28px;background:#fff;border-radius:12px;text-align:center}
+    pre{background:#0b1220;color:#cfefff;padding:12px;border-radius:8px;overflow:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">RP</div>
+      <div>
+        <div style="font-weight:700">RefurbPhones</div>
+        <div class="small muted">Refurbished phones — warranty & fast shipping</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="cart"><button class="btn" id="viewCartBtn">Cart</button><div class="cart-count" id="cartCount">0</div></div>
+      <a href="#contact" class="muted small">Contact</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <div class="topline">सस्ती और भरोसेमंद refurbished phones — 30 दिन रिटर्न, 90 दिन वॉरंटी</div>
+      <h2 style="margin:6px 0 0">बेस्ट डील्स — तुरंत खरीदें</h2>
+    </div>
+
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search phone, model, brand..." oninput="renderProducts()">
+      <select id="condition" onchange="renderProducts()">
+        <option value="all">सभी हालत</option>
+        <option value="like-new">Like New</option>
+        <option value="good">Good</option>
+        <option value="fair">Fair</option>
+      </select>
+      <select id="sort" onchange="renderProducts()">
+        <option value="popular">लोकप्रिय</option>
+        <option value="price-asc">कीमत: कम से ज्यादा</option>
+        <option value="price-desc">कीमत: ज्यादा से कम</option>
+      </select>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" onclick="seedDemo()">Demo Data</button>
+        <button class="btn" style="background:#1f2937" onclick="downloadCSV()">Export CSV</button>
+      </div>
+    </div>
+
+    <div id="products" class="grid" aria-live="polite"></div>
+
+    <div id="empty" class="grid-empty" style="display:none">कोई प्रोडक्ट नहीं मिला — <span class="muted">"Demo Data" दबाकर नमूना देखें</span></div>
+
+    <section id="contact" style="margin-top:28px;background:white;padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,.04)">
+      <h3>Contact / Order</h3>
+      <p class="small muted">Order करने के लिए नीचे फॉर्म भरें या सीधे <a href="mailto:sales@example.com">sales@example.com</a> पर मेल करें</p>
+      <form onsubmit="handleContact(event)" style="display:flex;gap:12px;flex-wrap:wrap">
+        <input name="name" required placeholder="आपका नाम" style="flex:1;padding:10px;border-radius:8px;border:1px solid #e6eef6">
+        <input name="phone" required placeholder="फ़ोन नंबर" style="flex:1;padding:10px;border-radius:8px;border:1px solid #e6eef6">
+        <input name="message" placeholder="मॉडल या क्वेरी" style="flex-basis:100%;padding:10px;border-radius:8px;border:1px solid #e6eef6">
+        <button class="btn" style="flex-basis:200px">Send</button>
+      </form>
+    </section>
+
+    <footer>
+      <div class="muted">© 2025 RefurbPhones • Built with a free single-file template</div>
+    </footer>
+  </main>
+
+  <!-- modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="row">
+        <img id="modalImg" src="" alt="Phone image">
+        <div class="content">
+          <h3 id="modalTitle">Title</h3>
+          <div class="small muted" id="modalCond">Condition</div>
+          <p id="modalDesc">Description</p>
+          <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
+            <div class="price" id="modalPrice">₹0</div>
+            <div class="badge" id="modalStock">In stock</div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button class="btn" onclick="addToCartFromModal()">Add to cart</button>
+            <a id="buyNowLink" class="btn" style="background:#059669;text-decoration:none;display:inline-flex;align-items:center;justify-content:center">Buy now</a>
+            <button style="background:#ef4444;color:white;padding:8px;border-radius:8px;border:0;" onclick="closeModal()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple single-file demo e-commerce behavior. Customize data below.
+    let products = [];
+    let cart = [];
+
+    function seedDemo(){
+      products = [
+        {id:1,brand:'Apple',model:'iPhone 11',price:12999,condition:'good',desc:'64GB, minor scratches, battery 88%',img:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200&auto=format&fit=crop&crop=faces'},
+        {id:2,brand:'Samsung',model:'Galaxy S20',price:13999,condition:'like-new',desc:'128GB, pristine, 6 months warranty',img:'https://images.unsplash.com/photo-1510557880182-3a935d1a1a48?q=80&w=1200&auto=format&fit=crop&crop=faces'},
+        {id:3,brand:'Xiaomi',model:'Redmi Note 10',price:7999,condition:'good',desc:'64GB, body good, charger included',img:'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?q=80&w=1200&auto=format&fit=crop&crop=faces'},
+        {id:4,brand:'OnePlus',model:'7T',price:14999,condition:'fair',desc:'128GB, glass crack (screen), working fine',img:'https://images.unsplash.com/photo-1523475496153-3d6ccf2a8a2a?q=80&w=1200&auto=format&fit=crop&crop=faces'}
+      ];
+      renderProducts();
+    }
+
+    function renderProducts(){
+      const container = document.getElementById('products');
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const condition = document.getElementById('condition').value;
+      const sort = document.getElementById('sort').value;
+      let filtered = products.filter(p=>{
+        if(condition!=='all' && p.condition!==condition) return false;
+        if(q && !(p.brand.toLowerCase().includes(q) || p.model.toLowerCase().includes(q))) return false;
+        return true;
+      });
+      if(sort==='price-asc') filtered.sort((a,b)=>a.price-b.price);
+      if(sort==='price-desc') filtered.sort((a,b)=>b.price-a.price);
+      container.innerHTML='';
+      if(filtered.length===0){document.getElementById('empty').style.display='block';return}
+      document.getElementById('empty').style.display='none';
+      filtered.forEach(p=>{
+        const div = document.createElement('div');div.className='card';
+        div.innerHTML = `
+          <img src="${p.img}" alt="${p.brand} ${p.model}">
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:700">${p.brand} ${p.model}</div>
+              <div class="tag">${p.condition}</div>
+            </div>
+            <div class="small muted">${p.desc}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+              <div class="price">₹${p.price.toLocaleString()}</div>
+              <div style="display:flex;gap:8px">
+                <button class="btn" onclick="openModal(${p.id})">View</button>
+                <button class="btn" style="background:#111827" onclick="addToCart(${p.id})">Add</button>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function openModal(id){
+      const p = products.find(x=>x.id===id); if(!p) return;
+      document.getElementById('modalImg').src=p.img;
+      document.getElementById('modalTitle').textContent = p.brand+' '+p.model;
+      document.getElementById('modalCond').textContent = p.condition;
+      document.getElementById('modalDesc').textContent = p.desc;
+      document.getElementById('modalPrice').textContent = '₹'+p.price.toLocaleString();
+      document.getElementById('modalStock').textContent = 'In stock';
+      document.getElementById('buyNowLink').href = 'mailto:sales@example.com?subject=Buy%20'+encodeURIComponent(p.brand+' '+p.model)+'&body=I%20want%20to%20buy%20this%20('+p.id+')';
+      document.getElementById('modalBg').style.display='flex';
+      window._modalProduct = p;
+    }
+    function closeModal(){document.getElementById('modalBg').style.display='none';window._modalProduct=null}
+    function addToCartFromModal(){if(window._modalProduct) addToCart(window._modalProduct.id); closeModal();}
+    function addToCart(id){const p = products.find(x=>x.id===id); if(!p) return; cart.push(p); updateCartUI(); alert(p.brand+' '+p.model+' cart me add ho gaya');}
+    function updateCartUI(){document.getElementById('cartCount').textContent = cart.length}
+    document.getElementById('viewCartBtn').addEventListener('click',()=>{
+      if(cart.length===0) return alert('Cart khali hai');
+      let text = 'Cart items:\n' + cart.map(c=>c.brand+' '+c.model+' - ₹'+c.price).join('\n') + '\n\nTotal: ₹' + cart.reduce((s,i)=>s+i.price,0);
+      alert(text);
+    });
+
+    function handleContact(e){e.preventDefault();alert('Thank you! We received your message. (Demo)');e.target.reset();}
+
+    // Small utility: export CSV of current products
+    function downloadCSV(){
+      if(products.length===0) return alert('No products');
+      const rows = [['id','brand','model','price','condition','desc']].concat(products.map(p=>[p.id,p.brand,p.model,p.price,p.condition,p.desc]));
+      const csv = rows.map(r=>r.map(cell=>'"'+String(cell).replace(/"/g,'""')+'"').join(',')).join('\n');
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='products.csv'; a.click(); URL.revokeObjectURL(url);
+    }
+
+    // Helpful: load demo on first open
+    // seedDemo();
+
+    // Note: To customize products, edit the 'products' array in the script or fetch a remote JSON.
+
+    // Optional: paste this file into a repo and host with GitHub Pages or Netlify (free). See README comments below.
+
+  </script>
+
+  <!-- README & Hosting tips (in-page for quick reference) -->
+  <details style="max-width:1100px;margin:24px auto;padding:12px;border-radius:8px;background:#fff">
+    <summary style="cursor:pointer;font-weight:700">Hosting & Quick Setup (click)</summary>
+    <div style="padding-top:12px" class="small muted">
+      1) Local preview: save this file as <code>index.html</code> and open in your browser.
+      <br>2) GitHub Pages (free): create a public GitHub repo, upload <code>index.html</code>, go to repo Settings → Pages → choose branch main / root and enable. Your site will be at <code>https://username.github.io/repo</code>.
+      <br>3) Netlify (free): drag & drop the file into Netlify drop (or connect repo) — instant deployment with HTTPS.
+      <br>4) Add real checkout: integrate Razorpay / Stripe or use WhatsApp/Email orders. For payments you will need a server or a third-party checkout provider.
+      <br>5) Replace demo images with your own product photos and edit the <code>products</code> array in the script.
+      <br>6) GDPR/Privacy: add a simple privacy notice if you collect user data.
+    </div>
+  </details>
+</body>
+</html>
